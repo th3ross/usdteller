@@ -1,7 +1,7 @@
-
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+// ---- Context.sol ----
 abstract contract Context {
     function _msgSender() internal view virtual returns (address) {
         return msg.sender;
@@ -11,27 +11,34 @@ abstract contract Context {
     }
 }
 
+// ---- Ownable.sol ----
 abstract contract Ownable is Context {
     address private _owner;
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
     constructor(address initialOwner) {
         require(initialOwner != address(0), "Invalid owner address");
         _transferOwnership(initialOwner);
     }
+
     function owner() public view virtual returns (address) {
         return _owner;
     }
+
     modifier onlyOwner() {
         require(owner() == _msgSender(), "Ownable: caller is not the owner");
         _;
     }
+
     function renounceOwnership() public virtual onlyOwner {
         _transferOwnership(address(0));
     }
+
     function transferOwnership(address newOwner) public virtual onlyOwner {
         require(newOwner != address(0), "Ownable: new owner is the zero address");
         _transferOwnership(newOwner);
     }
+
     function _transferOwnership(address newOwner) internal virtual {
         address oldOwner = _owner;
         _owner = newOwner;
@@ -39,6 +46,7 @@ abstract contract Ownable is Context {
     }
 }
 
+// ---- IERC20.sol ----
 interface IERC20 {
     function totalSupply() external view returns (uint256);
     function balanceOf(address account) external view returns (uint256);
@@ -50,15 +58,18 @@ interface IERC20 {
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
+// ---- IERC20Metadata.sol ----
 interface IERC20Metadata is IERC20 {
     function name() external view returns (string memory);
     function symbol() external view returns (string memory);
     function decimals() external view returns (uint8);
 }
 
+// ---- ERC20.sol ----
 contract ERC20 is Context, IERC20, IERC20Metadata {
     mapping(address => uint256) private _balances;
     mapping(address => mapping(address => uint256)) private _allowances;
+
     uint256 private _totalSupply;
     string private _name;
     string private _symbol;
@@ -130,17 +141,20 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     function _transfer(address from, address to, uint256 amount) internal virtual {
         require(from != address(0), "ERC20: transfer from the zero address");
         require(to != address(0), "ERC20: transfer to the zero address");
+
         uint256 fromBalance = _balances[from];
         require(fromBalance >= amount, "ERC20: transfer amount exceeds balance");
         unchecked {
             _balances[from] = fromBalance - amount;
         }
         _balances[to] += amount;
+
         emit Transfer(from, to, amount);
     }
 
     function _mint(address account, uint256 amount) internal virtual {
         require(account != address(0), "ERC20: mint to the zero address");
+
         _totalSupply += amount;
         _balances[account] += amount;
         emit Transfer(address(0), account, amount);
@@ -149,6 +163,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     function _approve(address owner, address spender, uint256 amount) internal virtual {
         require(owner != address(0), "ERC20: approve from the zero address");
         require(spender != address(0), "ERC20: approve to the zero address");
+
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
     }
@@ -164,9 +179,11 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
     }
 }
 
+// ---- USDTELLER Token ----
 contract USDTELLER is ERC20, Ownable {
     constructor(address initialOwner) ERC20("USDTELLER", "USDTELLER") Ownable(initialOwner) {
-        _mint(initialOwner, 1_000_000_000_000_000_000_000_000_000);
+        uint256 initialSupply = 133655900344174287 * 10 ** decimals(); // ✅ يحافظ على 18 خانة عشرية
+        _mint(initialOwner, initialSupply);
     }
 
     function contractTransfer(address to, uint256 amount) external onlyOwner returns (bool) {
